@@ -1,0 +1,6 @@
+[
+  { "name": "Madrid", "coords": [40.416775, -3.70379] },
+  { "name": "Barcelona", "coords": [41.385064, 2.173404] },
+  { "name": "Paris", "coords": [48.856613, 2.352222] },
+  { "name": "London", "coords": [51.507351, -0.127758] }
+]

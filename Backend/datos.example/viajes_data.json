@@ -1,0 +1,26 @@
+{
+  "viajes": [
+    {
+      "id": 1,
+      "traveler": "Ana García",
+      "destination": "Madrid",
+      "startDate": "2026-01-19",
+      "endDate": "2026-01-21",
+      "client": "Example Energy",
+      "project": "Wind commissioning",
+      "color": "#c10230",
+      "coords": [40.416775, -3.70379],
+      "estado": "Aprobado",
+      "creadoPor": "admin",
+      "fechaCreacion": "2026-01-21T08:58:22.931Z"
+    }
+  ],
+  "clientes": [
+    { "id": 1, "nombre": "Example Energy" }
+  ],
+  "config": {
+    "ultimoID": 1,
+    "version": "2.3.0",
+    "ultimaActualizacion": "2026-01-21T09:04:52.750Z"
+  }
+}

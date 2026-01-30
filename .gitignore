@@ -1,0 +1,26 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-lock.yaml
+
+# Electron builds / packaging
+dist/
+out/
+release/
+*.exe
+
+# Datos reales (NO subir)
+Backend/datos/
+datos/
+*.lock
+Backend/datos/backups/
+
+# Logs
+*.log
+
+# IDE / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
