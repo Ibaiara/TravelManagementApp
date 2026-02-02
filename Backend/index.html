@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ingeteam - Gestión de Viajes Corporativos</title>
+  <title>Gestión de Viajes Corporativos</title>
 
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -108,6 +108,7 @@
         clickMapToSet: "Pincha en el mapa para fijar coordenadas",
         name: "Nombre",
         saveLocation: "Guardar ubicación",
+        details: "Detalle del Viaje",
         close: "Cerrar"
     },
     en: {
@@ -159,6 +160,7 @@
         clickMapToSet: "Click on the map to set coordinates",
         name: "Name",
         saveLocation: "Save location",
+        details: "Trip details",
         close: "Close"
     }
   };
@@ -709,7 +711,11 @@
                   key={t0.id}
                   className="text-xs p-1 rounded text-white truncate cursor-pointer hover:opacity-80 transition"
                   style={{ backgroundColor: t0.color }}
-                  onClick={() => setSelectedTravel(t0)}
+                  onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelectedTravel(t0);
+                    }}
                   title="Click para ver detalles"
                 >
                   {t0.traveler.split(' ')[0]}
@@ -1085,7 +1091,7 @@
         <header className="bg-white shadow-md">
           <div className="max-w-7xl mx-auto px-4 py-4">
             <div className="flex items-center justify-between gap-4 flex-wrap">
-              <img src="" alt="Ingeteam" className="h-12 md:h-16"/>
+              <img src="" alt="Logo" className="h-12 md:h-16"/>
               <div className="text-center flex-1">
                 <h1 className="text-xl md:text-2xl font-bold" style={{color: '#c10230'}}>{t('title')}</h1>
                 <p className="text-sm text-gray-600">
@@ -1304,6 +1310,98 @@
             {activeView === 'calendar' && renderCalendar()}
             {activeView === 'map' && renderMap()}
             {activeView === 'list' && renderList()}
+
+            {selectedTravel && (
+                  <div
+                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+                    onMouseDown={() => setSelectedTravel(null)}
+                  >
+                    <div
+                      className="bg-white rounded-lg shadow-2xl max-w-md w-full border-2"
+                      style={{ borderColor: selectedTravel.color }}
+                      onMouseDown={(e) => e.stopPropagation()}
+                    >
+                      <div className="p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-xl font-bold" style={{ color: selectedTravel.color }}>
+                            {t('details') ?? 'Detalle del Viaje'}
+                          </h3>
+                          <button onClick={() => setSelectedTravel(null)} className="p-1 hover:bg-gray-100 rounded">
+                            <Icons.X />
+                          </button>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg"
+                              style={{ backgroundColor: selectedTravel.color }}
+                            >
+                              {selectedTravel.traveler?.charAt(0)}
+                            </div>
+                            <div>
+                              <div className="font-bold text-lg">{selectedTravel.traveler}</div>
+                              <div className="text-sm text-gray-500">{t('traveler')}</div>
+                            </div>
+                          </div>
+
+                          <div className="border-t pt-3 space-y-2">
+                            <div className="flex items-start gap-2">
+                              <Icons.MapPin />
+                              <div>
+                                <div className="font-semibold">{selectedTravel.destination}</div>
+                                <div className="text-sm text-gray-500">{t('destination')}</div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-start gap-2">
+                              <Icons.Building />
+                              <div>
+                                <div className="font-semibold">{selectedTravel.client}</div>
+                                <div className="text-sm text-gray-500">{t('client')}</div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-start gap-2">
+                              <Icons.Briefcase />
+                              <div>
+                                <div className="font-semibold">{selectedTravel.project}</div>
+                                <div className="text-sm text-gray-500">{t('project')}</div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-start gap-2">
+                              <Icons.Calendar />
+                              <div>
+                                <div className="font-semibold">
+                                  {new Date(selectedTravel.startDate).toLocaleDateString(lang === 'en' ? 'en-GB' : 'es-ES')}
+                                  {' - '}
+                                  {new Date(selectedTravel.endDate).toLocaleDateString(lang === 'en' ? 'en-GB' : 'es-ES')}
+                                </div>
+                                <div className="text-sm text-gray-500">Dates</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-6 flex gap-2">
+                          <button
+                            onClick={() => { startEdit(selectedTravel); setSelectedTravel(null); }}
+                            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+                          >
+                            <Icons.Edit /> {t('editTrip')}
+                          </button>
+                          <button
+                            onClick={() => setSelectedTravel(null)}
+                            className="px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                          >
+                            {t('close')}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
           </div>
 
           {showLocationModal && (
