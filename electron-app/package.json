@@ -1,13 +1,13 @@
 {
-    "name": "ingeteam-viajes-desktop",
+    "name": "viajes-desktop",
     "version": "2.0.0",
-    "description": "Ingeteam Viajes - Aplicación de Escritorio",
+    "description": "Gestion Viajes - Aplicación de Escritorio",
     "main": "main.js",
     "scripts": {
       "start": "electron .",
       "pack": "electron-packager . IngeteamViajes --platform=win32 --arch=x64 --out=dist --overwrite --no-asar"
     },
-    "author": "Ingeteam",
+    "author": "Ibai",
     "license": "ISC",
     "devDependencies": {
       "electron": "^28.0.0",
