@@ -1,0 +1,10 @@
+[
+  { "id": "User 1", "name": "User 1", "color": "#c10230" },
+  { "id": "User 2", "name": "User 2", "color": "#2563eb" },
+  { "id": "User 3", "name": "User 3", "color": "#16a34a" },
+  { "id": "User 4", "name": "User 4", "color": "#f59e0b" },
+  { "id": "User 5", "name": "User 5", "color": "#7c3aed" },
+  { "id": "User 6", "name": "User 6", "color": "#0ea5e9" },
+  { "id": "User 7", "name": "User 7", "color": "#334155" },
+  { "id": "User 8", "name": "User 8", "color": "#db2777" }
+]

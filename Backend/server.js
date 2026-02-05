@@ -22,8 +22,12 @@ const LOCK_FILE = path.join(DATA_DIR, '.lock');
 
 const LOCATIONS_FILE = path.join(DATA_DIR, 'locations.json');
 
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
+
 // Catálogo clientes (para autocompletar) - recomendado: DATA_DIR/clientes.json
 const CLIENTES_FILE = path.join(DATA_DIR, 'clientes.json');
+
+const OFERTAS_FILE = path.join(DATA_DIR, 'ofertas.json');
 
 // Fallback coords (HQ)
 const ingeteamHQ = [43.04426527618791, -2.2100984760320834];
@@ -245,6 +249,25 @@ app.get('/api/clientes', async (req, res) => {
   }
 });
 
+app.get('/api/ofertas', async (req, res) => {
+  try {
+    if (!fs.existsSync(OFERTAS_FILE)) return res.json([]);
+
+    let raw = await fsp.readFile(OFERTAS_FILE, 'utf8');
+    raw = raw.replace(/^\uFEFF/, '').trim();
+
+    const ofertas = JSON.parse(raw);
+    const clean = Array.isArray(ofertas)
+      ? ofertas.map(x => String(x || '').trim()).filter(Boolean)
+      : [];
+
+    return res.json(clean);
+  } catch (e) {
+    console.error('❌ Error leyendo ofertas.json:', e);
+    return res.status(500).json({ error: 'No se pudo leer el catálogo de ofertas' });
+  }
+});
+
 // Viajes
 app.get('/api/viajes', async (req, res) => {
   try {
@@ -335,7 +358,10 @@ app.post('/api/viajes', async (req, res) => {
       endDate,
       client,
       project,
-      coords
+      coords,
+      userId,
+      creadoPor,
+      color
     } = req.body;
 
     // Validación mínima
@@ -355,16 +381,17 @@ app.post('/api/viajes', async (req, res) => {
 
     const nuevoViaje = {
       id,
-      traveler: traveler.trim(),
+      userId: userId || null,                 // <-- guardar userId
+      creadoPor: (creadoPor || traveler).trim(), // <-- quien lo crea (usuario actual)
+      traveler: traveler.trim(),              // <-- viajero (en tu caso = usuario)
       destination: destination.trim(),
       startDate,
       endDate,
       client: client.trim(),
       project: project.trim(),
       coords: finalCoords,
-      color: '#c10230',           // si tienes lógica de color, sustitúyela aquí
+      color: color || '#636569',              // <-- usar color del usuario si viene
       estado: 'Aprobado',
-      creadoPor: 'usuario',        // ajusta si tienes login
       fechaCreacion: new Date().toISOString()
     };
 
@@ -378,6 +405,17 @@ app.post('/api/viajes', async (req, res) => {
   }
 });
 
+app.get('/api/users', async (req, res) => {
+  try {
+    if (!fs.existsSync(USERS_FILE)) return res.json([]);
+    const raw = await fsp.readFile(USERS_FILE, 'utf8');
+    const data = JSON.parse(raw.replace(/^\uFEFF/, '').trim());
+    return res.json(Array.isArray(data) ? data : []);
+  } catch (e) {
+    console.error('❌ Error leyendo users.json:', e);
+    return res.status(500).json({ error: 'No se pudo leer el catálogo de usuarios' });
+  }
+});
 app.put('/api/viajes/:id', async (req, res) => {
   try {
     const datos = await leerDatos();
@@ -390,7 +428,7 @@ app.put('/api/viajes/:id', async (req, res) => {
 
     const viajeActual = datos.viajes[index];
 
-    // Si el frontend manda coords, actualizamos; si no, mantenemos las existentes
+    // Coords: si vienen válidas, se actualizan; si no, se mantienen
     let coordsActualizadas = viajeActual.coords;
     if (Array.isArray(req.body.coords) && req.body.coords.length === 2) {
       const lat = Number(req.body.coords[0]);
@@ -400,12 +438,25 @@ app.put('/api/viajes/:id', async (req, res) => {
       }
     }
 
+    // Color: solo actualizar si viene un string no vacío
+    const colorActualizado =
+      (typeof req.body.color === 'string' && req.body.color.trim())
+        ? req.body.color.trim()
+        : viajeActual.color;
+
+    // userId: solo actualizar si viene (si no, mantener)
+    const userIdActualizado =
+      (typeof req.body.userId === 'string' && req.body.userId.trim()) || (req.body.userId === null)
+        ? req.body.userId
+        : viajeActual.userId;
+
     const viajeActualizado = {
       ...viajeActual,
       ...req.body,
-      id: viajeActual.id,               // preservar ID
-      coords: coordsActualizadas,       // coords controladas
-      color: viajeActual.color,         // preservar color (opcional)
+      id: viajeActual.id,                 // preservar ID
+      coords: coordsActualizadas,
+      color: colorActualizado,
+      userId: userIdActualizado,
       fechaModificacion: new Date().toISOString()
     };
 
@@ -414,13 +465,15 @@ app.put('/api/viajes/:id', async (req, res) => {
     if (typeof viajeActualizado.destination === 'string') viajeActualizado.destination = viajeActualizado.destination.trim();
     if (typeof viajeActualizado.client === 'string') viajeActualizado.client = viajeActualizado.client.trim();
     if (typeof viajeActualizado.project === 'string') viajeActualizado.project = viajeActualizado.project.trim();
+    if (typeof viajeActualizado.creadoPor === 'string') viajeActualizado.creadoPor = viajeActualizado.creadoPor.trim();
+    if (typeof viajeActualizado.modificadoPor === 'string') viajeActualizado.modificadoPor = viajeActualizado.modificadoPor.trim();
 
     datos.viajes[index] = viajeActualizado;
     await escribirDatos(datos);
 
     return res.json(viajeActualizado);
   } catch (error) {
-    console.error('Error endpoint PUT /api/viajes:', error);
+    console.error('Error endpoint PUT /api/viajes/:id:', error);
     return res.status(500).json({ error: 'Error al actualizar viaje' });
   }
 });
