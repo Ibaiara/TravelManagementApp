@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ingeteam - Gestión de Viajes Corporativos</title>
+  <title>Gestión de Viajes Corporativos</title>
 
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -113,6 +113,7 @@
         name: "Nombre",
         saveLocation: "Guardar ubicación",
         details: "Detalle del Viaje",
+        details: "Detalle del Viaje",
         close: "Cerrar"
     },
     en: {
@@ -164,6 +165,7 @@
         clickMapToSet: "Click on the map to set coordinates",
         name: "Name",
         saveLocation: "Save location",
+        details: "Trip details",
         details: "Trip details",
         close: "Close"
     }
@@ -312,7 +314,7 @@
           miniMarkerRef.current = null;
         }
 
-        const map = window.L.map(miniMapRef.current).setView(ingeteamHQ, 5);
+        const map = window.L.map(miniMapRef.current).setView(office, 5);
 
         window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '© OpenStreetMap',
@@ -921,8 +923,8 @@
         iconAnchor: [10, 10]
       });
 
-      window.L.marker(ingeteamHQ, { icon: hqIcon })
-        .bindPopup('<b>Ingeteam Indar Machines, SA</b><br>Beasain')
+      window.L.marker(office, { icon: hqIcon })
+        .bindPopup('<b>Your company .SA</b><br> Location')
         .addTo(markerClusterRef.current);
 
       const viajesPorUbicacion = {};
@@ -957,7 +959,7 @@
             `)
             .addTo(markerClusterRef.current);
 
-          window.L.polyline([ingeteamHQ, travel.coords], {
+          window.L.polyline([office, travel.coords], {
             color: travel.color,
             weight: 2,
             opacity: 0.6,
@@ -993,7 +995,7 @@
               `)
               .addTo(markerClusterRef.current);
 
-            window.L.polyline([ingeteamHQ, [offsetLat, offsetLng]], {
+            window.L.polyline([office, [offsetLat, offsetLng]], {
               color: travel.color,
               weight: 2,
               opacity: 0.6,
@@ -1023,7 +1025,7 @@
       });
 
       if (activeTravels.length > 0) {
-        const bounds = window.L.latLngBounds([ingeteamHQ, ...activeTravels.map(t0 => t0.coords)]);
+        const bounds = window.L.latLngBounds([office, ...activeTravels.map(t0 => t0.coords)]);
         map.fitBounds(bounds, { padding: [50, 50] });
       }
     };
@@ -1064,6 +1066,11 @@
                   key={t0.id}
                   className="text-xs p-1 rounded text-white truncate cursor-pointer hover:opacity-80 transition"
                   style={{ backgroundColor: t0.color }}
+                  onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelectedTravel(t0);
+                    }}
                   onMouseDown={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -1484,7 +1491,7 @@
         <header className="bg-white shadow-md">
           <div className="max-w-7xl mx-auto px-4 py-4">
             <div className="flex items-center justify-between gap-4 flex-wrap">
-              <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSxJZyu72SG3s068Rwk0glspzF2kVp6XwEL5Q&s" alt="Ingeteam" className="h-12 md:h-16"/>
+              <img src="" alt="Logo" className="h-12 md:h-16"/>
               <div className="text-center flex-1">
                 <h1 className="text-xl md:text-2xl font-bold" style={{color: '#c10230'}}>{t('title')}</h1>
                 <p className="text-sm text-gray-600">
@@ -2015,9 +2022,9 @@
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <a href="mailto:ibai.arana@ingeteam.com" className="hover:underline font-semibold" style={{color: '#c10230'}}>📧 ibai.arana@ingeteam.com</a>
+                <a href="mailto:ibai354@gmail.com" className="hover:underline font-semibold" style={{color: '#c10230'}}>📧 ibai354@gmail.com</a>
                 <span>|</span>
-                <span>2026 Ingeteam</span>
+                <span>2026 </span>
               </div>
             </div>
           </div>

@@ -30,7 +30,7 @@ const CLIENTES_FILE = path.join(DATA_DIR, 'clientes.json');
 const OFERTAS_FILE = path.join(DATA_DIR, 'ofertas.json');
 
 // Fallback coords (HQ)
-const ingeteamHQ = [43.04426527618791, -2.2100984760320834];
+const office = [43.04426527618791, -2.2100984760320834];
 
 // Crear directorios si no existen
 if (!fs.existsSync(DATA_DIR)) {
@@ -370,7 +370,7 @@ app.post('/api/viajes', async (req, res) => {
     }
 
     // Coordenadas: vienen del frontend (catálogo locations) o fallback
-    let finalCoords = ingeteamHQ;
+    let finalCoords = office;
     if (Array.isArray(coords) && coords.length === 2) {
       const lat = Number(coords[0]);
       const lon = Number(coords[1]);
@@ -529,7 +529,7 @@ async function start() {
   app.listen(PORT, () => {
     console.log(`
 ----------------------------------------------
--   INGETEAM - VIAJES CORPORATIVOS          -
+-   VIAJES CORPORATIVOS          -
 -   Servidor: http://localhost:${PORT}      -
 -   Datos: ${DATA_FILE}
 -   Backups: ${BACKUP_DIR}

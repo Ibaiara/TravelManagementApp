@@ -1,5 +1,5 @@
 {
-  "name": "ingeteam-viajes-backend",
+  "name": "viajes-backend",
   "version": "2.0.0",
   "description": "Sistema de gestión de viajes corporativos Ingeteam",
   "main": "server.js",
@@ -18,10 +18,9 @@
   },
   "keywords": [
     "viajes",
-    "ingeteam",
     "corporativo"
   ],
-  "author": "Ingeteam",
+  "author": "Ibai",
   "license": "ISC",
   "dependencies": {
     "express": "^4.18.2",

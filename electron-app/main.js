@@ -60,7 +60,7 @@ function createWindow() {
     height: 900,
     minWidth: 800,
     minHeight: 600,
-    title: 'Ingeteam - Gestión de Viajes',
+    title: 'Gestión de Viajes',
     backgroundColor: '#f9fafb',
     show: false,
     webPreferences: {
@@ -122,16 +122,16 @@ function createMenu() {
       submenu: [
         {
           label: 'Soporte',
-          click: () => shell.openExternal('mailto:ibai.arana@ingeteam.com')
+          click: () => shell.openExternal('mailto:ibai354@gmail.com')
         },
         {
           label: 'Acerca de',
           click: () => {
             dialog.showMessageBox(mainWindow, {
               type: 'info',
-              title: 'Ingeteam Viajes',
-              message: 'Ingeteam - Gestión de Viajes v2.0.0',
-              detail: '2026 Ingeteam\nSoporte: ibai.arana@ingeteam.com'
+              title: 'Viajes',
+              message: 'Gestión de Viajes v2.0.0',
+              detail: '2026 \nSoporte: ibai354@gmail.com'
             });
           }
         }
@@ -158,7 +158,7 @@ function createTray() {
   
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: 'Abrir Ingeteam Viajes',
+      label: 'Abrir Gestion Viajes',
       click: () => mainWindow.show()
     },
     { type: 'separator' },
@@ -171,7 +171,7 @@ function createTray() {
     }
   ]);
 
-  tray.setToolTip('Ingeteam Viajes');
+  tray.setToolTip('Viajes');
   tray.setContextMenu(contextMenu);
   tray.on('click', () => mainWindow.show());
 }
