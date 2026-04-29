@@ -1,16 +1,19 @@
 {
-    "name": "viajes-desktop",
-    "version": "2.0.0",
-    "description": "Gestion Viajes - Aplicación de Escritorio",
-    "main": "main.js",
-    "scripts": {
-      "start": "electron .",
-      "pack": "electron-packager . IngeteamViajes --platform=win32 --arch=x64 --out=dist --overwrite --no-asar"
-    },
-    "author": "Ibai",
-    "license": "ISC",
-    "devDependencies": {
-      "electron": "^28.0.0",
-      "electron-packager": "^17.1.2"
-    }
+  "name": "viajes-desktop",
+  "version": "2.0.0",
+  "description": "Gestion Viajes - Aplicación de Escritorio",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+
+    "pack": "electron-packager . IngeteamViajes --platform=win32 --arch=x64 --out=dist --overwrite --no-asar",
+    "copy-backend": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$dst = Get-ChildItem -Path dist -Directory | Where-Object { $_.Name -like 'IngeteamViajes-win32-x64*' } | Select-Object -First 1; if (-not $dst) { throw 'No se encontró carpeta empaquetada en dist'; } Copy-Item -Recurse -Force ..\\Backend ($dst.FullName + '\\\\Backend'); Write-Host ('✅ Backend copiado a ' + $dst.FullName + '\\\\Backend')\"",
+    "pack:with-backend": "npm run pack && npm run copy-backend"
+  },
+  "author": "Ibai",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-packager": "^17.1.2"
   }
+}

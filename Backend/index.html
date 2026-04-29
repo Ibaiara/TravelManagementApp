@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gestión de Viajes Corporativos</title>
+  <title>Ingeteam - Gestión de Viajes Corporativos</title>
 
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -72,7 +72,7 @@
         mapTitle: "Mapa Mundial - Ubicación del Equipo",
         mapAutoUpdate: "Actualización automática cada 30s",
         updateNow: "Actualizar ahora",
-        title: "Gestión de Viajes Corporativos",
+        title: "Gestión de Viajes",
         view: "Vista",
         calendar: "Calendario",
         map: "Mapa",
@@ -113,7 +113,6 @@
         name: "Nombre",
         saveLocation: "Guardar ubicación",
         details: "Detalle del Viaje",
-        details: "Detalle del Viaje",
         close: "Cerrar"
     },
     en: {
@@ -125,7 +124,7 @@
         mapTitle: "World Map - Team Location",
         mapAutoUpdate: "Auto refresh every 30s",
         updateNow: "Refresh now",
-        title: "Corporate Travel Management",
+        title: "Travel Management",
         view: "View",
         calendar: "Calendar",
         map: "Map",
@@ -166,11 +165,134 @@
         name: "Name",
         saveLocation: "Save location",
         details: "Trip details",
-        details: "Trip details",
         close: "Close"
     }
   };
 
+  function CatalogImportBlock({ title, endpoint, extraFields, onDone }) {
+          const [file, setFile] = React.useState(null);
+          const [columnName, setColumnName] = React.useState('');
+          const [loading, setLoading] = React.useState(false);
+          const [msg, setMsg] = React.useState('');
+
+          const submit = async () => {
+            if (!file) return alert('Selecciona un Excel');
+            if (!columnName.trim()) return alert('Indica el nombre de la columna (header)');
+
+            setLoading(true);
+            setMsg('');
+            try {
+              const fd = new FormData();
+              fd.append('file', file);
+              fd.append('columnName', columnName.trim());
+              if (extraFields) {
+                Object.entries(extraFields).forEach(([k, v]) => fd.append(k, v));
+              }
+
+              const resp = await fetch(endpoint, { method: 'POST', body: fd });
+              const data = await resp.json().catch(() => ({}));
+
+              if (!resp.ok) {
+                alert(data.error || 'Error importando');
+                return;
+              }
+
+              setMsg(`OK: ${data.count ?? data.total} registros`);
+              setFile(null);
+              await onDone?.();
+            } finally {
+              setLoading(false);
+            }
+          };
+
+          return (
+            <div className="border rounded-lg p-3">
+              <div className="font-semibold mb-2">{title}</div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  className="text-sm"
+                />
+                <input
+                  type="text"
+                  placeholder="Nombre de la columna (header)"
+                  value={columnName}
+                  onChange={(e) => setColumnName(e.target.value)}
+                  className="px-3 py-2 border rounded-lg text-sm"
+                />
+              </div>
+
+              <div className="mt-2 flex items-center justify-between">
+                <button
+                  onClick={submit}
+                  disabled={loading}
+                  className="px-4 py-2 rounded-lg text-white font-semibold disabled:opacity-40"
+                  style={{backgroundColor:'#c10230'}}
+                >
+                  {loading ? 'Importando...' : 'Importar'}
+                </button>
+                <div className="text-sm text-gray-600">{msg}</div>
+              </div>
+
+              <div className="text-xs text-gray-500 mt-2">
+                El nombre de columna debe coincidir con el header del Excel.
+              </div>
+            </div>
+          );
+    }
+
+    function SimpleExcelImport({ title, endpoint, onDone }) {
+      const [file, setFile] = React.useState(null);
+      const [loading, setLoading] = React.useState(false);
+      const [msg, setMsg] = React.useState('');
+
+      const submit = async () => {
+        if (!file) return alert('Selecciona un Excel');
+        setLoading(true);
+        setMsg('');
+        try {
+          const fd = new FormData();
+          fd.append('file', file);
+
+          const resp = await fetch(endpoint, { method: 'POST', body: fd });
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok) {
+            alert(data.error || 'Error importando');
+            return;
+          }
+          setMsg(`OK: ${data.count ?? data.total} registros`);
+          setFile(null);
+          await onDone?.();
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div className="border rounded-lg p-3">
+          <div className="font-semibold mb-2">{title}</div>
+          <div className="flex flex-wrap gap-3 items-center justify-between">
+            <div className="flex gap-2 flex-wrap">
+              <input type="file" accept=".xlsx,.xls" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={submit}
+                disabled={loading}
+                className="px-4 py-2 rounded-lg text-white font-semibold disabled:opacity-40"
+                style={{ backgroundColor: '#c10230' }}
+              >
+                {loading ? 'Importando...' : 'Importar'}
+              </button>
+            </div>
+          </div>
+          <div className="text-xs text-gray-600 mt-2">{msg}</div>
+        </div>
+      );
+    }
   function App() {
     const [travels, setTravels] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -228,6 +350,11 @@
     const [ofertaQuery, setOfertaQuery] = useState('');
     const [mostrarDropdownOfertas, setMostrarDropdownOfertas] = useState(false);
 
+    const [showCatalogImport, setShowCatalogImport] = useState(false);
+    const [proyectosCatalogo, setProyectosCatalogo] = useState([]);
+    const [proyectoQuery, setProyectoQuery] = useState('');
+    const [mostrarDropdownProyectos, setMostrarDropdownProyectos] = useState(false);
+
     const [users, setUsers] = useState([]);
     const [currentUser, setCurrentUser] = useState(() => {
       try { return JSON.parse(localStorage.getItem('currentUser')); } catch { return null; }
@@ -256,11 +383,11 @@
 
 
     useEffect(() => {
-      cargarCatalogoOfertas();
       cargarUsers();
       cargarCatalogoClientes();
       cargarViajes();
       cargarLocations();
+      cargarCatalogoProyectos();
       const interval = setInterval(cargarViajes, 30000);
       return () => clearInterval(interval);
     }, []);
@@ -314,7 +441,7 @@
           miniMarkerRef.current = null;
         }
 
-        const map = window.L.map(miniMapRef.current).setView(office, 5);
+        const map = window.L.map(miniMapRef.current).setView(ingeteamHQ, 5);
 
         window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '© OpenStreetMap',
@@ -375,6 +502,16 @@
       }
     }
 
+    async function cargarCatalogoProyectos() {
+      try {
+        const res = await fetch(`${API_URL}/proyectos`);
+        const data = await res.json();
+        setProyectosCatalogo(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.warn('No se pudo cargar proyectos', e);
+        setProyectosCatalogo([]);
+      }
+    }
     async function cargarCatalogoOfertas() {
       try {
         const res = await fetch(`${API_URL}/ofertas`);
@@ -690,7 +827,7 @@
               coords: null
             });
             setClienteQuery('');
-            setOfertaQuery('');
+            setProyectoQuery('');
             setDestinationQuery('');
             setShowAddForm(false);
           } catch (err) {
@@ -704,12 +841,11 @@
             e.preventDefault();
             setSaving(true);
 
+            const { traveler, userId, color, creadoPor, ...rest } = formData;
+
             const payload = {
-              ...formData,
-              modificadoPor: currentUser?.name || 'unknown',
-              userId: currentUser?.id || null,
-              traveler: currentUser.name
-              // NO cambio color aquí (normalmente)
+              ...rest,
+              modificadoPor: currentUser?.name || 'unknown'
             };
 
             try {
@@ -734,7 +870,7 @@
                 coords: null
               });
               setClienteQuery('');
-              setOfertaQuery('');
+              setProyectoQuery('');
               setDestinationQuery('');
             } catch (err) {
               alert('❌ Error al actualizar');
@@ -766,7 +902,7 @@
         coords: travel.coords || null
       });
       setClienteQuery(travel.client || '');
-      setOfertaQuery(travel.project || '');
+      setProyectoQuery(travel.project || '');
       setDestinationQuery(travel.destination || '');
       setShowAddForm(false);
       setSelectedTravel(null);
@@ -923,8 +1059,8 @@
         iconAnchor: [10, 10]
       });
 
-      window.L.marker(office, { icon: hqIcon })
-        .bindPopup('<b>Your company .SA</b><br> Location')
+      window.L.marker(ingeteamHQ, { icon: hqIcon })
+        .bindPopup('<b>Ingeteam Indar Machines, SA</b><br>Beasain')
         .addTo(markerClusterRef.current);
 
       const viajesPorUbicacion = {};
@@ -959,7 +1095,7 @@
             `)
             .addTo(markerClusterRef.current);
 
-          window.L.polyline([office, travel.coords], {
+          window.L.polyline([ingeteamHQ, travel.coords], {
             color: travel.color,
             weight: 2,
             opacity: 0.6,
@@ -995,7 +1131,7 @@
               `)
               .addTo(markerClusterRef.current);
 
-            window.L.polyline([office, [offsetLat, offsetLng]], {
+            window.L.polyline([ingeteamHQ, [offsetLat, offsetLng]], {
               color: travel.color,
               weight: 2,
               opacity: 0.6,
@@ -1025,7 +1161,7 @@
       });
 
       if (activeTravels.length > 0) {
-        const bounds = window.L.latLngBounds([office, ...activeTravels.map(t0 => t0.coords)]);
+        const bounds = window.L.latLngBounds([ingeteamHQ, ...activeTravels.map(t0 => t0.coords)]);
         map.fitBounds(bounds, { padding: [50, 50] });
       }
     };
@@ -1538,9 +1674,18 @@
                   </button>
 
                 </div>
-                <button onClick={() => { setShowAddForm(!showAddForm); setEditingTravel(null); }} className="px-6 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 flex items-center gap-2 font-semibold shadow-md">
-                  <Icons.Plus /> <span className="hidden md:inline">{t('newTrip')}</span>
-                </button>
+                <div className="flex gap-2 flex-wrap">
+                  <button onClick={() => { setShowAddForm(!showAddForm); setEditingTravel(null); }} className="px-6 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 flex items-center gap-2 font-semibold shadow-md">
+                    <Icons.Plus /> <span className="hidden md:inline">{t('newTrip')}</span>
+                  </button>
+                  <button
+                      onClick={() => setShowCatalogImport(true)}
+                      className="px-4 py-2 border-2 rounded-lg font-semibold hover:bg-gray-50"
+                      style={{borderColor:'#636569', color:'#636569'}}
+                    >
+                      Actualizar catálogos
+                    </button>
+                </div>
               </div>
             </div>
 
@@ -1556,7 +1701,7 @@
                     setEditingTravel(null);
                     setFormData({ traveler: '', destination: '', startDate: '', endDate: '', client: '', project: '', coords: null });
                     setClienteQuery('');
-                    setOfertaQuery('');
+                    setProyectoQuery('');
                     setDestinationQuery('');
                     setShowLocationModal(false);
                   }} className="p-1 hover:bg-gray-100 rounded">
@@ -1570,7 +1715,7 @@
                     <input
                       type="text"
                       className="w-full px-3 py-2 border rounded-lg bg-gray-100 text-gray-700"
-                      value={currentUser?.name || ''}
+                      value={editingTravel ? (formData.traveler || '') : (currentUser?.name || '')}
                       readOnly
                     />
                   </div>
@@ -1705,30 +1850,30 @@
                         type="text"
                         required
                         className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-700"
-                        value={ofertaQuery || formData.project}
+                        value={proyectoQuery || formData.project}
                         placeholder="Escribe para buscar..."
                         onChange={(e) => {
                           const val = e.target.value;
-                          setOfertaQuery(val);
+                          setProyectoQuery(val);
                           setFormData({ ...formData, project: val });
-                          setMostrarDropdownOfertas(true);
+                          setMostrarDropdownProyectos(true);
                         }}
-                        onFocus={() => setMostrarDropdownOfertas(true)}
-                        onBlur={() => setTimeout(() => setMostrarDropdownOfertas(false), 150)}
+                        onFocus={() => setMostrarDropdownProyectos(true)}
+                        onBlur={() => setTimeout(() => setMostrarDropdownProyectos(false), 150)}
                       />
 
-                      {mostrarDropdownOfertas && (
+                      {mostrarDropdownProyectos && (
                         <div className="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                          {getClientesFiltrados(ofertasCatalogo, ofertaQuery || formData.project).slice(0, 30).map((o, idx) => {
-                            const name = typeof o === 'string' ? o : o.name;
+                          {getClientesFiltrados(proyectosCatalogo, proyectoQuery || formData.project).slice(0, 30).map((p, idx) => {
+                            const name = typeof p === 'string' ? p : p.name;
                             return (
                               <div
                                 key={idx}
                                 className="px-3 py-2 text-sm hover:bg-gray-100 cursor-pointer"
                                 onMouseDown={() => {
                                   setFormData({ ...formData, project: name });
-                                  setOfertaQuery(name);
-                                  setMostrarDropdownOfertas(false);
+                                  setProyectoQuery(name);
+                                  setMostrarDropdownProyectos(false);
                                 }}
                               >
                                 {name}
@@ -1736,24 +1881,24 @@
                             );
                           })}
 
-                          {(ofertaQuery || formData.project).trim().length >= 3 && (
+                          {(proyectoQuery || formData.project).trim().length >= 3 && (
                             <div
                               className="px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 cursor-pointer border-t"
                               onMouseDown={() => {
-                                const name = (ofertaQuery || formData.project).trim();
+                                const name = (proyectoQuery || formData.project).trim();
                                 setFormData({ ...formData, project: name });
-                                setOfertaQuery(name);
-                                setMostrarDropdownOfertas(false);
+                                setProyectoQuery(name);
+                                setMostrarDropdownProyectos(false);
                               }}
                             >
-                              + Usar oferta nueva: “{(ofertaQuery || formData.project).trim()}”
+                              + Usar nuevo: “{(proyectoQuery || formData.project).trim()}”
                             </div>
                           )}
                         </div>
                       )}
 
                       <p className="text-xs text-gray-500 mt-1">
-                        Empieza a escribir para buscar en el catálogo ({ofertasCatalogo.length}).
+                        Catálogo unificado: {proyectosCatalogo.length}
                       </p>
                     </div>
 
@@ -1765,7 +1910,7 @@
                         setEditingTravel(null);
                         setFormData({ traveler: '', destination: '', startDate: '', endDate: '', client: '', project: '', coords: null });
                         setClienteQuery('');
-                        setOfertaQuery('');
+                        setProyectoQuery('');
                         setDestinationQuery('');
                       }}
                       className="px-6 py-2 border-2 border-gray-600 text-gray-600 rounded-lg hover:bg-gray-50 font-semibold"
@@ -2002,6 +2147,34 @@
               </div>
             </div>
           )}
+          {showCatalogImport && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+                  onClick={() => setShowCatalogImport(false)}>
+                <div className="bg-white rounded-lg shadow-2xl w-full max-w-xl border-2"
+                    style={{ borderColor: '#c10230' }}
+                    onClick={(e) => e.stopPropagation()}>
+                  <div className="p-4 border-b flex items-center justify-between">
+                    <div className="font-bold text-lg" style={{ color: '#c10230' }}>Actualizar catálogos</div>
+                    <button className="p-1 hover:bg-gray-100 rounded" onClick={() => setShowCatalogImport(false)}>
+                      <Icons.X />
+                    </button>
+                  </div>
+
+                  <div className="p-4 space-y-4">
+                    <SimpleExcelImport
+                      title="Clientes"
+                      endpoint={`${API_URL}/catalogos/clientes/import-excel`}
+                      onDone={async () => { await cargarCatalogoClientes(); }}
+                    />
+                    <SimpleExcelImport
+                      title="Ofertas/Pedidos/Oportunidades"
+                      endpoint={`${API_URL}/catalogos/proyectos/import-excel`}
+                      onDone={async () => { await cargarCatalogoProyectos(); }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
         </main>
 
         <footer className="bg-white border-t-4 shadow-inner" style={{borderColor: '#c10230'}}>
@@ -2017,9 +2190,9 @@
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <a href="mailto:ibai354@gmail.com" className="hover:underline font-semibold" style={{color: '#c10230'}}>📧 ibai354@gmail.com</a>
+                <a href="mailto:ibai.arana@ingeteam.com" className="hover:underline font-semibold" style={{color: '#c10230'}}>📧 ibai.arana@ingeteam.com</a>
                 <span>|</span>
-                <span>2026 </span>
+                <span>2026 Ingeteam</span>
               </div>
             </div>
           </div>

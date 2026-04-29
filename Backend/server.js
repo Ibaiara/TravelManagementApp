@@ -4,6 +4,16 @@ const fsp = fs.promises;           // async (readFile, writeFile, access...)
 const path = require('path');
 const cors = require('cors');
 
+const XLSX = require('xlsx');
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
+
+
+
+// TODO: pon aquí el nombre exacto de columna (header) de cada Excel
+const CLIENTES_COLUMN = 'Account Name';      // <-- cámbialo
+const PROYECTOS_COLUMNS = [ 'Project Name / Reference', 'Reference',  'Topic'];
+
 const app = express();
 app.use(express.json({ limit: '2mb' }));
 app.use(cors());
@@ -19,6 +29,8 @@ const DATA_DIR = process.env.DATA_DIR || path.join(rutaBase, 'datos');
 const DATA_FILE = path.join(DATA_DIR, 'viajes_data.json');
 const BACKUP_DIR = path.join(DATA_DIR, 'backups');
 const LOCK_FILE = path.join(DATA_DIR, '.lock');
+
+const PROYECTOS_FILE = path.join(DATA_DIR, 'ofertas.json');
 
 const LOCATIONS_FILE = path.join(DATA_DIR, 'locations.json');
 
@@ -81,6 +93,35 @@ const fileLock = new FileLock(LOCK_FILE);
 // ============================================
 // FUNCIONES DE DATOS
 // ============================================
+function pickFirstMatchingColumn(headers, candidates) {
+  const set = new Set(headers.map(h => String(h).trim().toLowerCase()));
+  return candidates.find(c => set.has(String(c).trim().toLowerCase())) || null;
+}
+function excelBufferToList(buffer, columnName) {
+  const wb = XLSX.read(buffer, { type: 'buffer' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+  return rows
+    .map(r => String(r[columnName] ?? '').trim())
+    .filter(Boolean);
+}
+
+function uniqSorted(arr) {
+  return [...new Set(arr.map(x => String(x).trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'es'));
+}
+
+async function readJsonArray(file, fallback = []) {
+  try {
+    if (!fs.existsSync(file)) return fallback;
+    const raw = await fsp.readFile(file, 'utf8');
+    const data = JSON.parse(raw.replace(/^\uFEFF/, '').trim());
+    return Array.isArray(data) ? data : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 async function asegurarLocationsFile() {
   try {
@@ -223,7 +264,19 @@ app.get('/api/health', (req, res) => {
     esEjecutable
   });
 });
+app.post('/api/catalogos/clientes/import-excel', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Falta archivo Excel' });
 
+    const list = uniqSorted(excelBufferToList(req.file.buffer, CLIENTES_COLUMN));
+    await fsp.writeFile(CLIENTES_FILE, JSON.stringify(list, null, 2), 'utf8');
+
+    return res.json({ ok: true, count: list.length });
+  } catch (e) {
+    console.error('import clientes:', e);
+    return res.status(500).json({ error: e.message });
+  }
+});
 // Catálogo clientes (para autocompletar)
 app.get('/api/clientes', async (req, res) => {
   try {
@@ -267,6 +320,10 @@ app.get('/api/ofertas', async (req, res) => {
     return res.status(500).json({ error: 'No se pudo leer el catálogo de ofertas' });
   }
 });
+app.get('/api/proyectos', async (req, res) => {
+  const list = await readJsonArray(PROYECTOS_FILE, []);
+  res.json(list);
+});
 
 // Viajes
 app.get('/api/viajes', async (req, res) => {
@@ -302,6 +359,51 @@ app.get('/api/locations', async (req, res) => {
   }
 });
 
+  app.post('/api/catalogos/proyectos/import-excel', upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: 'Falta archivo Excel' });
+
+      // Leer excel
+      const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+      if (!rows.length) return res.status(400).json({ error: 'El Excel no tiene filas' });
+
+      // Detectar columna válida (de tu lista)
+      const headers = Object.keys(rows[0]).map(h => String(h).trim());
+      const column = pickFirstMatchingColumn(headers, PROYECTOS_COLUMNS);
+
+      if (!column) {
+        return res.status(400).json({
+          error: 'No se encontró una columna válida',
+          headersEncontrados: headers,
+          columnasEsperadas: PROYECTOS_COLUMNS
+        });
+      }
+
+      // Usar esa columna
+      const incoming = rows
+        .map(r => String(r[column] ?? '').trim())
+        .filter(Boolean);
+
+      const current = await readJsonArray(PROYECTOS_FILE, []);
+      const currentUniq = uniqSorted(current);
+      const merged = uniqSorted([...currentUniq, ...incoming]);
+
+      await fsp.writeFile(PROYECTOS_FILE, JSON.stringify(merged, null, 2), 'utf8');
+
+      return res.json({
+        ok: true,
+        columnUsed: column,
+        added: merged.length - currentUniq.length,
+        total: merged.length
+      });
+    } catch (e) {
+      console.error('import proyectos:', e);
+      return res.status(500).json({ error: e.message });
+    }
+  });
 // POST /api/locations - crear ubicación nueva
 app.post('/api/locations', async (req, res) => {
   try {
@@ -450,15 +552,23 @@ app.put('/api/viajes/:id', async (req, res) => {
         ? req.body.userId
         : viajeActual.userId;
 
-    const viajeActualizado = {
-      ...viajeActual,
-      ...req.body,
-      id: viajeActual.id,                 // preservar ID
-      coords: coordsActualizadas,
-      color: colorActualizado,
-      userId: userIdActualizado,
-      fechaModificacion: new Date().toISOString()
-    };
+        const viajeActualizado = {
+          ...viajeActual,
+          ...req.body,
+        
+          id: viajeActual.id,
+          coords: coordsActualizadas,
+        
+          // PRESERVAR creador original
+          traveler: viajeActual.traveler,
+          userId: viajeActual.userId,
+          creadoPor: viajeActual.creadoPor,
+          color: viajeActual.color,
+        
+          // registrar editor
+          modificadoPor: req.body.modificadoPor || viajeActual.modificadoPor,
+          fechaModificacion: new Date().toISOString()
+        };
 
     // Limpieza básica de strings si vienen
     if (typeof viajeActualizado.traveler === 'string') viajeActualizado.traveler = viajeActualizado.traveler.trim();
